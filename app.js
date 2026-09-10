@@ -1,11 +1,16 @@
 require("dotenv").config();
 require("./path");
 
+const { connect } = require("services/db");
 const { startWorker } = require("./worker");
 
-// Separate Event Alerts worker.
-// Does not change eagleanalytix_cron or eagleanalytix-backend.
-// Later: persist hits to Mongo. Not wired yet.
+async function main() {
+    console.log("[alert] starting");
+    await connect();
+    startWorker();
+}
 
-console.log("[alert] starting");
-startWorker();
+main().catch(err => {
+    console.error("[alert] failed to start:", err.message);
+    process.exit(1);
+});
