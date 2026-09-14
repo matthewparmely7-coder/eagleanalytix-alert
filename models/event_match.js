@@ -4,7 +4,8 @@ const { Schema } = require("mongoose");
 module.exports = new Schema(
     {
         tmEventID: String,
-        vsEventID: String
+        vsEventID: String,
+        shEventID: String
     },
     { collection: "eventmatchmodels" }
 );

@@ -1,5 +1,5 @@
 const CronJob = require("cron").CronJob;
-const supplyChange = require("patterns/supplyChange");
+const watchlist = require("services/watchlist");
 
 const TICK_MS = parseInt(process.env.TICK_MS, 10) || 60 * 1000;
 const BATCH_SIZE = parseInt(process.env.BATCH_SIZE, 10) || 8;
@@ -8,44 +8,44 @@ const DAILY_LIST_MINUTE = Math.min(Math.max(parseInt(process.env.DAILY_LIST_MINU
 const TIMEZONE = (process.env.TIMEZONE || "America/New_York").trim();
 const DAILY_CRON = `${DAILY_LIST_MINUTE} ${DAILY_LIST_HOUR} * * *`;
 
-async function pullTomorrowEvents() {
+async function pullWatchlist() {
     try {
-        const { added, skipped, vsMatched, from, to, targetUtcDate } = await supplyChange.pullTomorrowEvents();
+        const { added, skipped, vsMatched, shMatched, passedCount, from, to, listedOn } = await watchlist.pullWatchlist();
         console.log(
-            `[supply_change_40] daily list UTC ${targetUtcDate}: added ${added}, already stored ${skipped}, VS matched ${vsMatched}  ${from.toISOString()} – ${to.toISOString()}`
+            `[alert] daily list ${listedOn}: added ${added}, already stored ${skipped}, VS ${vsMatched}, SH ${shMatched}, marked passed ${passedCount}  ${from.toISOString()} – ${to.toISOString()}`
         );
     } catch (err) {
-        console.error("[supply_change_40] daily pull failed:", err.message);
+        console.error("[alert] daily list failed:", err.message);
     }
 }
 
 async function refreshHistory() {
     try {
-        const { processed, reset, passedCount, cycleDone } = await supplyChange.refreshHistoryBatch(BATCH_SIZE);
+        const { processed, reset, passedCount, cycleDone } = await watchlist.refreshHistoryBatch(BATCH_SIZE);
         if (passedCount) {
-            console.log(`[supply_change_40] marked ${passedCount} events passed`);
+            console.log(`[alert] marked ${passedCount} events passed`);
         }
         if (cycleDone) {
-            console.log("[supply_change_40] no open events; history worker idle");
+            console.log("[alert] no open events; history worker idle");
             return;
         }
         if (reset) {
-            console.log("[supply_change_40] history cycle complete; reset historyUpdated");
+            console.log("[alert] history cycle complete; reset historyUpdated");
         }
-        console.log(`[supply_change_40] history batch ${processed}`);
+        console.log(`[alert] history batch ${processed}`);
     } catch (err) {
-        console.error("[supply_change_40] history batch failed:", err.message);
+        console.error("[alert] history batch failed:", err.message);
     }
 }
 
 function startWorker() {
-    const job = new CronJob(DAILY_CRON, pullTomorrowEvents, null, true, TIMEZONE);
+    const job = new CronJob(DAILY_CRON, pullWatchlist, null, true, TIMEZONE);
     console.log(`[alert] daily event list at ${String(DAILY_LIST_HOUR).padStart(2, "0")}:${String(DAILY_LIST_MINUTE).padStart(2, "0")} ${TIMEZONE}`);
     if (job.nextDate) {
         console.log("[alert] next daily list:", job.nextDate().toString());
     }
     console.log(`[alert] history worker every ${TICK_MS}ms, batch ${BATCH_SIZE}`);
-    pullTomorrowEvents();
+    pullWatchlist();
     refreshHistory();
     setInterval(refreshHistory, TICK_MS);
 }

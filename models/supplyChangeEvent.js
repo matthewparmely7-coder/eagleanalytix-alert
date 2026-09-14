@@ -1,5 +1,12 @@
 const { Schema } = require("mongoose");
 
+const snapshot = {
+    timestamp: Number,
+    primary: Number,
+    minPrice: Number,
+    _id: false
+};
+
 module.exports = new Schema(
     {
         eventID: { type: String, required: true, unique: true },
@@ -11,19 +18,12 @@ module.exports = new Schema(
         pulledAt: Date,
         passed: { type: Boolean, default: false },
         historyUpdated: { type: Boolean, default: false },
-        history: [
-            {
-                timestamp: Number,
-                primary: Number
-            }
-        ],
+        history: [snapshot],
         vsEventID: String,
-        vsHistory: [
-            {
-                timestamp: Number,
-                primary: Number
-            }
-        ],
+        vsHistory: [snapshot],
+        shEventID: String,
+        shHistory: [snapshot],
+        patterns: { type: Schema.Types.Mixed, default: {} },
         historyPulledAt: Date
     },
     { collection: "supply_change_events" }

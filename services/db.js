@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const tmEventsSchema = require("models/tm_events");
 const eventMatchSchema = require("models/event_match");
-const supplyChangeEventSchema = require("models/supplyChangeEvent");
+const watchlistSchema = require("models/supplyChangeEvent");
 
 mongoose.set("strictQuery", false);
 
@@ -9,7 +9,7 @@ let sourceConn;
 let localConn;
 let tmEventsModel;
 let eventMatchModel;
-let supplyChangeEventModel;
+let watchlistModel;
 
 function sourceUri() {
     return (process.env.SOURCE_MONGODB_URI || process.env.MONGODB_URI || "").trim();
@@ -30,13 +30,12 @@ async function connect() {
     }
 
     const opts = { useNewUrlParser: true, serverSelectionTimeoutMS: 10000 };
-
     sourceConn = await mongoose.createConnection(source, opts).asPromise();
     localConn = await mongoose.createConnection(local, opts).asPromise();
 
     tmEventsModel = sourceConn.model("tm_eventsModel", tmEventsSchema);
     eventMatchModel = sourceConn.model("eventMatchModel", eventMatchSchema);
-    supplyChangeEventModel = localConn.model("supplyChangeEvent", supplyChangeEventSchema);
+    watchlistModel = localConn.model("supplyChangeEvent", watchlistSchema);
 
     console.log("[alert] connected to source MongoDB");
     console.log("[alert] connected to local MongoDB");
@@ -50,13 +49,13 @@ function getEventMatchModel() {
     return eventMatchModel;
 }
 
-function getSupplyChangeEventModel() {
-    return supplyChangeEventModel;
+function getWatchlistModel() {
+    return watchlistModel;
 }
 
 module.exports = {
     connect,
     getTmEventsModel,
     getEventMatchModel,
-    getSupplyChangeEventModel
+    getWatchlistModel
 };

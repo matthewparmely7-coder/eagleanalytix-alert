@@ -2,7 +2,7 @@
     "name": "eagleanalytix-alert",
     "version": "0.1.0",
     "private": true,
-    "description": "Standalone worker for Event Alerts (8 patterns). Separate from eagleanalytix_cron.",
+    "description": "Event Alerts worker: watchlist, S3 history, supply-change / U-shape / rocket detectors.",
     "scripts": {
         "start": "node ./app.js",
         "dev": "nodemon ./app.js"
