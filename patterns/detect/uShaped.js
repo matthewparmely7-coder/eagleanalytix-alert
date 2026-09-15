@@ -108,6 +108,40 @@ function pickH1(series, left, troughStart, troughLevel, variationPct, minDipPerc
     return best;
 }
 
+/** First time price enters the H2 band after leaving the trough. */
+function firstHighTouch(series, afterTs, h2Value, wiggle) {
+    for (let i = 0; i < series.length; i++) {
+        const row = series[i];
+        if (row.timestamp <= afterTs) {
+            continue;
+        }
+        if (inQuietBand(row.value, h2Value, wiggle)) {
+            return row;
+        }
+    }
+    return null;
+}
+
+/**
+ * Reject concatenated U/V shapes: after the trough, price already reached
+ * H2-level, then dipped again, before the marked H2.
+ */
+function prematureHighThenDip(series, troughTs, h2Ts, h2Value, wiggle) {
+    const mid = series.filter(row => row.timestamp > troughTs && row.timestamp < h2Ts);
+    let seenHigh = false;
+    for (let i = 0; i < mid.length; i++) {
+        const row = mid[i];
+        if (inQuietBand(row.value, h2Value, wiggle)) {
+            seenHigh = true;
+            continue;
+        }
+        if (seenHigh && h2Value && row.value < h2Value * (1 - wiggle)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function findTrough(series, h2, minTroughMs, wiggle, minJumpPercent, minJumpPrice) {
     const before = series.filter(row => row.timestamp < h2.timestamp);
     if (before.length < 2) {
@@ -167,6 +201,9 @@ function detectUShaped(history, opts = {}) {
     const minTroughMs = (opts.troughDays != null ? opts.troughDays : t.uShapeTroughDays) * 24 * 60 * 60 * 1000;
     const minDropMs = (opts.dropDays != null ? opts.dropDays : t.uShapeDropDays) * 24 * 60 * 60 * 1000;
     const actionMs = (opts.actionDays != null ? opts.actionDays : t.uShapeActionDays) * 24 * 60 * 60 * 1000;
+    const maxHighAgeMs =
+        (opts.maxHighAgeDays != null ? opts.maxHighAgeDays : t.uShapeMaxHighAgeDays) * 24 * 60 * 60 * 1000;
+    const maxRiseMs = (opts.maxRiseDays != null ? opts.maxRiseDays : t.uShapeMaxRiseDays) * 24 * 60 * 60 * 1000;
     const series = toSeries(history, "minPrice");
     if (!series || series.length < MIN_POINTS) {
         return miss();
@@ -192,6 +229,21 @@ function detectUShaped(history, opts = {}) {
         if (!h1) {
             continue;
         }
+
+        // Rise from low must be recent — not a high that has sat for a week+.
+        if (tNow - found.launch.timestamp > maxRiseMs) {
+            continue;
+        }
+        const highTouch = firstHighTouch(series, found.trough.timestamp, h2.value, variationPct);
+        if (!highTouch || tNow - highTouch.timestamp > maxHighAgeMs) {
+            continue;
+        }
+
+        // Reject double U/V: already hit H2-level after the trough, then dipped, before H2.
+        if (prematureHighThenDip(series, found.trough.timestamp, h2.timestamp, h2.value, variationPct)) {
+            continue;
+        }
+
         const dipPercent = ((h1.value - found.level) / h1.value) * 100;
         return {
             hit: true,

@@ -5,6 +5,10 @@
     "description": "Event Alerts worker: watchlist, S3 history, supply-change / U-shape / rocket detectors.",
     "scripts": {
         "start": "node ./app.js",
+        "start:history": "node ./app.js history",
+        "start:patterns": "node ./app.js patterns",
+        "start:series": "node ./app.js series",
+        "test": "node --test test/*.test.js",
         "dev": "nodemon ./app.js"
     },
     "dependencies": {

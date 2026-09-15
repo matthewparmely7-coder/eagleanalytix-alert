@@ -10,6 +10,7 @@ let localConn;
 let tmEventsModel;
 let eventMatchModel;
 let watchlistModel;
+let seriesModel, seriesEventModel, stateModel, artistTourModel, tourModel;
 
 function sourceUri() {
     return (process.env.SOURCE_MONGODB_URI || process.env.MONGODB_URI || "").trim();
@@ -30,13 +31,21 @@ async function connect() {
     }
 
     const opts = { useNewUrlParser: true, serverSelectionTimeoutMS: 10000 };
-    sourceConn = await mongoose.createConnection(source, opts).asPromise();
+    sourceConn = await mongoose.createConnection(source, { ...opts, autoIndex: false, autoCreate: false }).asPromise();
     localConn = await mongoose.createConnection(local, opts).asPromise();
 
     tmEventsModel = sourceConn.model("tm_eventsModel", tmEventsSchema);
     eventMatchModel = sourceConn.model("eventMatchModel", eventMatchSchema);
     watchlistModel = localConn.model("supplyChangeEvent", watchlistSchema);
 
+    tourModel = localConn.model("tourOpportunity", require("models/tourOpportunity"));
+    seriesModel = localConn.model("concertSeries", require("models/concertSeries"));
+    seriesEventModel = localConn.model("seriesEvent", require("models/seriesEvent"));
+    stateModel = localConn.model("workerState", require("models/workerState"));
+    artistTourModel = sourceConn.model("tmArtistTourModel", new mongoose.Schema({
+        artistName: String, tmArtistID: String, events: []
+    }, { collection: "tmartisttourmodels", strict: false }));
+    await Promise.all([watchlistModel.init(), seriesModel.init(), seriesEventModel.init(), stateModel.init(), tourModel.init()]);
     console.log("[alert] connected to source MongoDB");
     console.log("[alert] connected to local MongoDB");
 }
@@ -57,5 +66,11 @@ module.exports = {
     connect,
     getTmEventsModel,
     getEventMatchModel,
-    getWatchlistModel
+    getWatchlistModel,
+    getSeriesModel: () => seriesModel,
+    getTourModel: () => tourModel,
+    getSeriesEventModel: () => seriesEventModel,
+    getStateModel: () => stateModel,
+    getArtistTourModel: () => artistTourModel,
+    close: () => Promise.all([sourceConn && sourceConn.close(), localConn && localConn.close()])
 };

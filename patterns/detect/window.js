@@ -4,6 +4,7 @@ const { thresholds } = require("./thresholds");
 const SUPPLY_EVENT_DAYS = { from: 0, to: 1 };
 const U_SHAPE_EVENT_DAYS = { from: 0, to: 7 };
 const ROCKET_EVENT_DAYS = { from: 0, to: 21 };
+const LOW_RESALE_EVENT_DAYS = { from: 0, to: 21 };
 
 function eventTimezone(opts = {}) {
     return opts.timezone || "America/New_York";
@@ -50,14 +51,28 @@ function rocketWindow(opts = {}) {
     return { from: from.valueOf(), to: to.valueOf() };
 }
 
+function isLowResaleEvent(eventDate, timezone) {
+    return inDayRange(eventDate, timezone, LOW_RESALE_EVENT_DAYS);
+}
+
+function lowResaleWindow(opts = {}) {
+    const tz = eventTimezone(opts);
+    const from = moment.tz(tz).startOf("day").subtract(thresholds().lowResaleHistoryDays - 1, "day");
+    const eventEnd = opts.eventDate ? moment(opts.eventDate) : moment.tz(tz).endOf("day");
+    return { from: from.valueOf(), to: eventEnd.valueOf() };
+}
+
 module.exports = {
     daysUntilEvent,
     supplyWindow,
     isSupplyChangeEvent,
     isUShapeEvent,
     isRocketEvent,
+    isLowResaleEvent,
     rocketWindow,
+    lowResaleWindow,
     SUPPLY_EVENT_DAYS,
     U_SHAPE_EVENT_DAYS,
-    ROCKET_EVENT_DAYS
+    ROCKET_EVENT_DAYS,
+    LOW_RESALE_EVENT_DAYS
 };

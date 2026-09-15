@@ -1,7 +1,8 @@
 const { detectSupplyChange } = require("./supplyChange");
 const { detectUShaped } = require("./uShaped");
 const { detectRocket } = require("./rocket");
-const { isSupplyChangeEvent, isUShapeEvent, isRocketEvent } = require("./window");
+const { detectLowResalePrimary } = require("./lowResalePrimary");
+const { isSupplyChangeEvent, isUShapeEvent, isRocketEvent, isLowResaleEvent } = require("./window");
 
 function detectAll(tmHistory, vsHistory, shHistory, opts = {}) {
     const window = { eventDate: opts.eventDate, timezone: opts.timezone };
@@ -29,6 +30,12 @@ function detectAll(tmHistory, vsHistory, shHistory, opts = {}) {
         };
     }
 
+    if (isLowResaleEvent(opts.eventDate, opts.timezone)) {
+        patterns.low_resale_primary = {
+            tm: detectLowResalePrimary(tmHistory, vsHistory, window)
+        };
+    }
+
     return patterns;
 }
 
@@ -36,5 +43,6 @@ module.exports = {
     detectAll,
     detectSupplyChange,
     detectUShaped,
-    detectRocket
+    detectRocket,
+    detectLowResalePrimary
 };
